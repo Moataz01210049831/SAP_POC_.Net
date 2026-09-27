@@ -1,0 +1,59 @@
+## SAP Client Generation (Kiota)
+
+الكود اللي في `Generated/` بيتولّد تلقائيًا من ملف OpenAPI spec (`API_BUSINESS_PARTNER.json`) — مش بيتعمله commit في git، لازم تولّده بنفسك بعد أي `git clone`.
+
+### 1. تثبيت Kiota CLI (مرة واحدة بس على جهازك)
+```bash
+dotnet tool install --global Microsoft.OpenApi.Kiota
+```
+
+لو عندك نسخة قديمة ومحتاج تحدّثها:
+```bash
+dotnet tool update --global Microsoft.OpenApi.Kiota
+```
+
+للتأكد إنه اتثبت صح ومعرفة الـ version:
+```bash
+kiota --version
+```
+
+### 2. تثبيت الـ NuGet packages المطلوبة للـ Kiota runtime
+```bash
+dotnet add package Microsoft.Kiota.Bundle
+```
+> ده package واحد شامل بيجيب معاه (Abstractions, Http.HttpClientLibrary, Serialization.Json/Text/Form/Multipart) — مش محتاج تنزلهم واحد واحد.
+
+### 3. أمر توليد الكلاسات (الأهم)
+لازم ملف `API_BUSINESS_PARTNER.json` (OpenAPI spec) يكون موجود في روت المشروع، وبعدين نفّذ:
+```bash
+kiota generate -d API_BUSINESS_PARTNER.json -l CSharp -c SapBusinessPartnerClient -n WebApplication1.SapGenerated -o ./Generated --include-path "/A_BusinessPartner*"
+```
+
+**شرح الـ flags:**
+| Flag | المعنى |
+|---|---|
+| `-d` | مسار ملف الـ OpenAPI spec (الـ source) |
+| `-l` | اللغة (CSharp) |
+| `-c` | اسم الكلاس الرئيسي للـ client (`SapBusinessPartnerClient`) |
+| `-n` | الـ namespace اللي هيتحط فيه الكود المولّد |
+| `-o` | فولدر الـ output |
+| `--include-path` | يحدد بس الـ endpoints اللي عايزين نولّد ليها كود (هنا كل حاجة تبدأ بـ `/A_BusinessPartner`) |
+
+### 4. .gitignore
+تأكد إن السطر ده موجود في `.gitignore` علشان الفولدر ميتعملوش commit (طويل جدًا وبيسبب مشاكل Windows path length):
+```
+Generated/
+```
+
+### 5. إعادة التوليد بعد أي تعديل في الـ spec
+لو الملف `API_BUSINESS_PARTNER.json` اتغيّر (نسخة جديدة من SAP)، امسح الفولدر القديم وولّد تاني:
+```bash
+rmdir /s /q Generated
+kiota generate -d API_BUSINESS_PARTNER.json -l CSharp -c SapBusinessPartnerClient -n WebApplication1.SapGenerated -o ./Generated --include-path "/A_BusinessPartner*"
+```
+
+### 6. إعداد الـ API Key (بعد الـ clone)
+```bash
+dotnet user-secrets init
+dotnet user-secrets set "Sap:ApiKey" "<PUT-YOUR-SANDBOX-API-KEY-HERE>"
+```
